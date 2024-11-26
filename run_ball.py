@@ -33,6 +33,10 @@ class BouncingSimulator:
         self.my_paddle = paddle.Paddle(200, 50, (255, 0, 0), tom)
         self.my_paddle.set_location([0, -50])
 
+        jerry = turtle.Turtle()
+        self.second_paddle = paddle.Paddle(50, 200, (0, 255, 0), jerry)
+        self.second_paddle.set_location([-self.canvas_width + 150, 0])
+
         self.screen = turtle.Screen()
 
     # updates priority queue with all new events for a_ball
@@ -45,6 +49,7 @@ class BouncingSimulator:
             dt = a_ball.time_to_hit(self.ball_list[i])
             # insert this event into pq
             heapq.heappush(self.pq, my_event.Event(self.t + dt, a_ball, self.ball_list[i], None))
+
         
         # particle-wall collisions
         dtX = a_ball.time_to_hit_vertical_wall()
@@ -67,8 +72,10 @@ class BouncingSimulator:
     def __redraw(self):
         turtle.clear()
         self.my_paddle.clear()
+        self.second_paddle.clear()
         self.__draw_border()
         self.my_paddle.draw()
+        self.second_paddle.draw()
         for i in range(len(self.ball_list)):
             self.ball_list[i].draw()
         turtle.update()
@@ -77,8 +84,11 @@ class BouncingSimulator:
     def __paddle_predict(self):
         for i in range(len(self.ball_list)):
             a_ball = self.ball_list[i]
-            dtP = a_ball.time_to_hit_paddle(self.my_paddle)
-            heapq.heappush(self.pq, my_event.Event(self.t + dtP, a_ball, None, self.my_paddle))
+            dtP1 = a_ball.time_to_hit_paddle(self.my_paddle)
+            heapq.heappush(self.pq, my_event.Event(self.t + dtP1, a_ball, None, self.my_paddle))
+
+            dtP2 = a_ball.time_to_hit_paddle(self.second_paddle)
+            heapq.heappush(self.pq, my_event.Event(self.t + dtP2, a_ball, None, self.second_paddle))
 
     # move_left and move_right handlers update paddle positions
     def move_left(self):
@@ -90,6 +100,14 @@ class BouncingSimulator:
         if (self.my_paddle.location[0] + self.my_paddle.width/2 + 40) <= self.canvas_width:
             self.my_paddle.set_location([self.my_paddle.location[0] + 40, self.my_paddle.location[1]])
 
+    def move_up(self):
+        if (self.second_paddle.location[1] + self.second_paddle.height / 2 + 40) <= self.canvas_height:
+            self.second_paddle.set_location([self.second_paddle.location[0], self.second_paddle.location[1] + 40])
+
+    def move_down(self):
+        if (self.second_paddle.location[1] - self.second_paddle.height / 2 - 40) >= -self.canvas_height:
+            self.second_paddle.set_location([self.second_paddle.location[0], self.second_paddle.location[1] - 40])
+
     def run(self):
         # initialize pq with collision events and redraw event
         for i in range(len(self.ball_list)):
@@ -100,6 +118,8 @@ class BouncingSimulator:
         self.screen.listen()
         self.screen.onkey(self.move_left, "Left")
         self.screen.onkey(self.move_right, "Right")
+        self.screen.onkey(self.move_up, "Up")
+        self.screen.onkey(self.move_down, "Down")
 
         while (True):
             e = heapq.heappop(self.pq)
